@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homework-deployment
+  namespace: homework
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: homework-app
+  template:
+    metadata:
+      labels:
+        app: homework-app
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: homework
+                operator: In
+                values: "true"
+      volumes:
+      - name: homework-volume
+        emptyDir: {}
+      initContainers:
+      - name: init-container
+        image: busybox
+        command: ["sh", "-c", "echo '<h1>Hello from init container</h1>' > /init/index.html"]
+        volumeMounts:
+        - name: homework-volume
+          mountPath: /init
+      containers:
+      - name: webserver
+        image: nginx
+        ports:
+        - containerPort: 8000
+        command: ["nginx", "-g", "daemon off;"]
+        volumeMounts:
+        - name: homework-volume
+          mountPath: /homework
+        lifecycle:
+          preStop:
+            exec:
+              command: ["rm", "/homework/index.html"]
+        readinessProbe:
+          tcpSocket:
+            port: 8000
+          readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - '-c'
+            - [ -f /homework/index.html ]
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          failureThreshold: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
