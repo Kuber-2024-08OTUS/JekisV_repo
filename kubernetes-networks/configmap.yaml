@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: configmap-nginx
+  namespace: homework
+  labels:
+    app: homework-app
+data:
+  nginx.conf: |
+    events {}
+    http {
+      server {
+        listen 8000;
+        root /homework;
+
+        location / {
+        autoindex on;
+        }
+      }
+    }
