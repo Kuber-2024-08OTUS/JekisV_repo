@@ -1,0 +1,12 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-pvc
+  namespace: homework
+  labels:
+    app: homework-app
+data:
+  config_2: |
+    key: value
+    TZ: Europe/Moscow

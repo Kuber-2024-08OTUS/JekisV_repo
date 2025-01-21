@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homework-deployment
+  namespace: homework
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: homework-app
+  template:
+    metadata:
+      labels:
+        app: homework-app
+    spec:
+      serviceAccountName: monitoring
+      volumes:
+      - name: vol-nginx-root
+        persistentVolumeClaim:
+          claimName: pvc
+      - name: vol-nginx-config
+        configMap:
+          name: configmap-nginx
+      - name: vol-cm-pvc
+        configMap:
+          name: cm-pvc
+          items:
+            - key: config_2
+              path: index.html
+      initContainers:
+      - name: init-container
+        image: busybox
+        command: ["sh", "-c", "echo '<h1>Hello from init container</h1>' > /init/index.html"]
+        volumeMounts:
+        - name: vol-nginx-root
+          mountPath: "/init"
+      containers:
+      - name: webserver
+        image: nginx
+        ports:
+        - containerPort: 8000
+        command: ["nginx", "-g", "daemon off;"]
+        volumeMounts:
+        - name: vol-nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        - name: vol-nginx-root
+          mountPath: /homework
+        - name: vol-cm-pvc
+          mountPath: /homework/conf/
+        lifecycle:
+          preStop:
+            exec:
+              command: ["rm", "/homework/index.html"]
+        readinessProbe:
+          httpGet:
+            path: /index.html
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          failureThreshold: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
