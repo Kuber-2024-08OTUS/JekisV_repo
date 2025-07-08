@@ -1,0 +1,27 @@
+Приложение {{ include "myapp-chart.fullname" . }} было успешно развернуто.
+
+{{- if .Values.ingress.enabled }}
+Для доступа к приложению используйте Ingress:
+  {{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}{{ (first .paths).path }}
+  {{- end }}
+{{- else if contains "LoadBalancer" .Values.service.type }}
+Выполните команду, чтобы получить внешний IP:
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "myapp-chart.fullname" . }} -o jsonpath='{ .status.loadBalancer.ingress[0].ip }')
+  echo "Доступ к приложению: http://$SERVICE_IP:{{ .Values.service.port }}"
+{{- else if contains "NodePort" .Values.service.type }}
+Выполните команды, чтобы получить адрес:
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "myapp-chart.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo "Доступ к приложению: http://$NODE_IP:$NODE_PORT"
+{{- else }}
+Для доступа к приложению можно использовать port-forward:
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:{{ .Values.service.targetPort }}
+Теперь приложение доступно по адресу http://127.0.0.1:8080
+{{- end }}
+
+{{- if .Values.redis.enabled }}
+
+Redis (зависимость) был развернут. Его можно найти по адресу: {{ printf "%s-redis-master" .Release.Name }}:6379
+{{- end }}
