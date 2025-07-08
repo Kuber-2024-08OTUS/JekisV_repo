@@ -1,0 +1,33 @@
+{{- if .Values.rbac.create }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "myapp-chart.serviceAccountName" . }}
+  labels:
+    {{- include "myapp-chart.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "myapp-chart.fullname" . }}-role
+  labels:
+    {{- include "myapp-chart.labels" . | nindent 4 }}
+rules:
+- apiGroups: [""]
+  resources: ["pods", "configmaps"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "myapp-chart.fullname" . }}-rolebinding
+  labels:
+    {{- include "myapp-chart.labels" . | nindent 4 }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "myapp-chart.serviceAccountName" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "myapp-chart.fullname" . }}-role
+{{- end }}

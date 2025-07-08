@@ -1,0 +1,130 @@
+# Основные параметры приложения
+replicaCount: 2
+
+image:
+  repository: nginx
+  pullPolicy: IfNotPresent
+  tag: "1.23.4" # Тег по умолчанию, взят из вашего Deployment
+
+containerName: myapp-container # Имя контейнера
+
+# --- Конфигурация доступа и безопасности ---
+
+# Секрет для загрузки приватных образов
+imagePullSecrets: []
+
+# Переопределение имен (использовать, если стандартные имена не подходят)
+nameOverride: ""
+fullnameOverride: ""
+
+# Конфигурация ServiceAccount
+serviceAccount:
+  create: true
+  annotations: {}
+  # Имя ServiceAccount. Если не указано, будет сгенерировано.
+  # Если вы используете существующий SA, установите create: false и укажите его имя здесь.
+  name: "myapp-sa"
+
+# RBAC (Role, RoleBinding)
+rbac:
+  # Управляет созданием Role и RoleBinding
+  create: true
+
+# Network Policies
+networkPolicy:
+  # Управляет созданием всех NetworkPolicy
+  create: true
+  # ВАЖНО: Укажите здесь неймспейс вашего Ingress-контроллера
+  ingressControllerNamespace: "ingress-nginx"
+
+# Контексты безопасности
+podSecurityContext: {}
+# fsGroup: 2000
+
+securityContext: {}
+# capabilities:
+#   drop:
+#   - ALL
+# readOnlyRootFilesystem: true
+# runAsNonRoot: true
+# runAsUser: 1000
+
+# --- Конфигурация сети ---
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+  name: http # Имя порта, используется в пробах
+
+ingress:
+  enabled: true
+  className: "" # Укажите класс Ingress, если необходимо (например, "nginx")
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  hosts:
+    - host: myapp.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  # - secretName: myapp-tls
+  #   hosts:
+  #     - myapp.local
+
+# --- Конфигурация приложения ---
+
+# Данные для ConfigMap (ключ-значение)
+appConfig:
+  PARAM1: "Hello from app-configmap"
+  PARAM2: "env value from configmap"
+
+# Ключи для Secret. Значения должны быть заданы в base64.
+# Пример: DB_USER: dXNlcg== (echo -n 'user' | base64)
+appSecrets:
+  DB_PASSWORD: ""
+  DB_USER: ""
+
+# --- Ресурсы и пробы ---
+
+# Запросы и лимиты ресурсов для пода
+resources: {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+# Пробы для проверки жизнеспособности и готовности
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /actuator/health/liveness
+      port: http # Имя порта, указанное в service.name
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 1
+    failureThreshold: 3
+    successThreshold: 1
+  readiness:
+    enabled: true
+    httpGet:
+      path: /actuator/health/readiness
+      port: http # Имя порта, указанное в service.name
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 1
+    failureThreshold: 3
+    successThreshold: 1
+
+# --- Зависимости ---
+
+# Конфигурация для sub-chart Redis
+# Эти значения будут переданы в чарт Redis
+redis:
+  enabled: false # Установите 'true' для развертывания Redis вместе с приложением
+  # auth:
+  #   enabled: true
+  #   password: "your-strong-password"
