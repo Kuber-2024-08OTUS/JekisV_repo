@@ -7,3 +7,7 @@
 *.iml
 out
 gen
+.terraform/
+.terraform.lock.hcl
+key.json
+terraform.*
