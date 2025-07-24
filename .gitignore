@@ -10,4 +10,5 @@ gen
 .terraform/
 .terraform.lock.hcl
 key.json
-terraform.*
+terraform.tfstate*
+terraform.tfstate
